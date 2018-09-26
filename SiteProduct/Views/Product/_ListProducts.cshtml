@@ -8,6 +8,9 @@
         <th>
             @Html.DisplayNameFor(model => model.Price)
         </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Description)
+        </th>
         <th></th>
     </tr>
 
@@ -17,8 +20,13 @@
             <td>
                 @Html.DisplayFor(modelItem => item.Name)
             </td>
-            <td>
+            <td>           
                 @Html.DisplayFor(modelItem => item.Price)
+            </td>
+            <td>
+                <div>
+                    @Html.Raw(item.Description)
+                </div>
             </td>
             <td>
                 @Html.ActionLink("Edit", "Edit", new { id = item.Id }) |
@@ -27,5 +35,12 @@
             </td>
         </tr>
     }
-
 </table>
+
+@section Scripts {
+    <script>
+        $(function () {
+
+        }
+    </script>
+}

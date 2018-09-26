@@ -1,9 +1,11 @@
 ﻿
+using Newtonsoft.Json;
 using SiteProduct.Core;
 using SiteProduct.DAL.Entities;
 using SiteProduct.Models;
 using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -24,7 +26,13 @@ namespace SiteProduct.Controllers
         // GET: Product
         public ActionResult Index()
         {
-            return View();
+            List<ProductItemViewModel> products = new List<ProductItemViewModel>();
+            foreach (var item in _context.Products)
+            {
+                products.Add(new ProductItemViewModel { Name = item.Name, Price = item.Price, Description = item.Description });
+            }
+
+            return View(products);
         }
         [HttpGet]
         public ActionResult Add()
@@ -36,17 +44,35 @@ namespace SiteProduct.Controllers
         {
             if(ModelState.IsValid)
             {
+                
                 try
                 {
+                    var imgs = JsonConvert.DeserializeObject<string[]>(model.DescriptionImages);
                     using (TransactionScope scope = new TransactionScope())
                     {
+                        Product add = new Product { Name = model.Name, Price = model.Price, Description = model.Description };
+                        _context.Products.Add(add);
+                        _context.SaveChanges();
 
+                        if(imgs.Length!=0)
+                        {
+                            foreach (var item in _context.ProductDescriptionImages)
+                            {
+                                foreach (var img in imgs)
+                                {
+                                    if (item.Name == Path.GetFileName(img))
+                                        item.ProductId = add.Id;
+                                }                                
+                            }
+                            _context.SaveChanges();
+                        }
                         scope.Complete();
                     }
+                    return RedirectToAction("Index");
                 }
                 catch
                 {
-
+                    return View(model);
                 }
             }
             return View(model);
@@ -70,7 +96,8 @@ namespace SiteProduct.Controllers
                             filename;
                         var pdImage = new ProductDescriptionImage
                         {
-                            Name = filename
+                            Name = filename,
+                            LoadDate = DateTime.Now
                         };
                         _context.ProductDescriptionImages.Add(pdImage);
                         _context.SaveChanges();

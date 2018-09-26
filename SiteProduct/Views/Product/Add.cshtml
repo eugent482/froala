@@ -7,8 +7,8 @@
 <h2>Додати продукт</h2>
 <i class="fa fa-plus"></i>
 
-@using (Html.BeginForm())
-{
+@using (Html.BeginForm("Add", "Product", FormMethod.Post, new { onsubmit ="FillData()" }))
+    {
     @Html.AntiForgeryToken()
 
     <div class="form-horizontal">
@@ -42,9 +42,9 @@
                 @Html.ValidationMessageFor(model => model.Description, "", new { @class = "text-danger" })
             </div>
         </div>
-        <div class="hidden" id="divImages">
-
-        </div>
+        <div class="form-group">
+                <input type="hidden" id="DescriptionImages" name="DescriptionImages" />
+          </div>
 
         <div class="form-group">
             <div class="col-md-offset-2 col-md-10">
@@ -52,12 +52,14 @@
             </div>
         </div>
     </div>
-}
+    }
 
 <div>
     @Html.ActionLink("Back to List", "Index")
 </div>
-
+<div>
+    <button id="imagescheck">PUSHME</button>
+</div>
 
 @section Styles {
     @Styles.Render("~/Content/froala")
@@ -68,49 +70,82 @@
     @Scripts.Render("~/bundles/froala")
 
     <script>
-        $(function () {
-            $(".html-editor-autoinit").froalaEditor({
-                toolbarButtons: ['bold', 'italic', 'underline', 'paragraphFormat', '|',
-                    'color', 'emoticons', 'formatUL', 'formatOL', 'align', 'outdent', 'indent', '|',
-                    'quote', 'insertHR', 'insertLink', 'insertImage', 'insertVideo', 'insertTable', 'undo', 'redo', 'clearFormatting', 'html'],
-                imageUploadURL: '/Product/UploadImageDecription',
-                imageMaxSize: 2 * 1024 * 1024,
-                paragraphFormat: {
-                    N: 'Звичайний',
-                    H2: 'H2',
-                    H3: 'H3',
-                    H4: 'H4',
-                    H5: 'H5',
-                    H6: 'H6'
-                },
-                language: 'ua'
-            })
-                .on('froalaEditor.image.uploaded', function (e, editor, response) {
-                    console.log(response);
+        var images = new Set();
+            $(function () {               
+                $(".html-editor-autoinit").froalaEditor({
+                    toolbarButtons: ['bold', 'italic', 'underline', 'paragraphFormat', '|',
+                        'color', 'emoticons', 'formatUL', 'formatOL', 'align', 'outdent', 'indent', '|',
+                        'quote', 'insertHR', 'insertLink', 'insertImage', 'insertVideo', 'insertTable', 'undo', 'redo', 'clearFormatting', 'html'],
+                    imageUploadURL: '/Product/UploadImageDecription',
+                    imageMaxSize: 2 * 1024 * 1024,
+                    paragraphFormat: {
+                        N: 'Звичайний',
+                        H2: 'H2',
+                        H3: 'H3',
+                        H4: 'H4',
+                        H5: 'H5',
+                        H6: 'H6'
+                    },
+                    language: 'ua'
                 })
-                .on('froalaEditor.image.error', function (e, ditor, error, response) {
-                    if (error.code == 5) {
-                        alert("Розмір файлу не повинен бути більше 2 мб.");
-                    }
-                    return false;
-                })
-                // Catch image remove
-                .on('froalaEditor.image.removed', function (e, editor, $img) {
-                    $.ajax({
-                        // Request method.
-                        method: "POST",
+                    .on('froalaEditor.image.uploaded', function (e, editor, response) {
 
-                        // Request URL.
-                        url: "/Product/DeleteImageDecription",
-
-                        // Request params.
-                        data: {
-                            src: $img.attr('src')
+                    })
+                    .on('froalaEditor.image.inserted', function (e, editor, $img, response) {
+                        images.add($img.attr('src'));
+                        console.log($img.attr('src'));
+                    })
+                    .on('froalaEditor.image.error', function (e, ditor, error, response) {
+                        if (error.code == 5) {
+                            alert("Розмір файлу не повинен бути більше 2 мб.");
                         }
-                    }).done(function (data) {
+                        return false;
+                    })
+                    // Catch image remove
+                    .on('froalaEditor.image.removed', function (e, editor, $img) {
+                        $.ajax({
+                            method: "POST",
+                            url: "/Product/DeleteImageDecription",
+                            data: {
+                                src: $img.attr('src')
+                            }
+                        }).done(function (data) {
+                            images.delete($img.attr('src'));
                             console.log(data);
                         });
+                    });
+                $("#imagescheck").click(function () {
+
+                    var imgs = Array.from(images);
+                    if (imgs.length > 0) {
+                        var elem = JSON.stringify(imgs);
+                        console.log(elem);
+                    }
+                    else {
+                        console.log(1234);
+                    }
+
+
+                    //images.forEach(function (item) {
+                    //    console.log(item);
+                    //});
+
                 });
-        });
+                
+
+            });
+        function FillData() {
+
+            var html = $('#textEdit').froalaEditor('html.get');           
+
+            $('#Description').val(html);
+            var imgs = Array.from(images);
+            if (imgs.length > 0) {
+                $('#DescriptionImages').val(JSON.stringify(imgs));
+            }
+            else {
+                $('#DescriptionImages').val(null);
+            }
+        }
     </script>
 }
